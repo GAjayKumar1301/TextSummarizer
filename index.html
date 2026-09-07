@@ -6,6 +6,8 @@
     <title>Text Summarizer</title>
     <!-- Tailwind CSS CDN for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Marked.js for parsing Markdown from Gemini -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         /* Custom styles for the Inter font and overall body */
         body {
@@ -31,6 +33,11 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        /* Basic styling for the Markdown output */
+        #summaryOutput p { margin-bottom: 1em; }
+        #summaryOutput strong { color: #111827; }
+        #summaryOutput ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 1em; }
+        #summaryOutput li { margin-bottom: 0.5em; }
     </style>
 </head>
 <body class="antialiased">
@@ -92,15 +99,15 @@
 
             try {
                 // Construct the prompt for the Gemini API
-                let chatHistory = [];
-                chatHistory.push({
-                    role: "user",
-                    parts: [{ text: `Please summarize the following text concisely:\n\n${textToSummarize}` }]
-                });
+                const payload = {
+                    contents: [{
+                        role: "user",
+                        parts: [{ text: `Please summarize the following text concisely:\n\n${textToSummarize}` }]
+                    }]
+                };
 
-                // Prepare the payload for the API request
-                const payload = { contents: chatHistory };
-                const apiKey = "AIzaSyBVhzclSKVl48DZa6niYQZf-Mp2o68H0Ho"; // API key will be provided by the Canvas environment
+                // DANGER: API Key exposed in frontend code. Do not use in production.
+                const apiKey = "AIzaSyBVhzclSKVl48DZa6niYQZf-Mp2o68H0Ho"; 
                 const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
                 // Make the API call to Gemini
@@ -122,8 +129,11 @@
                 if (result.candidates && result.candidates.length > 0 &&
                     result.candidates[0].content && result.candidates[0].content.parts &&
                     result.candidates[0].content.parts.length > 0) {
+                    
                     const summary = result.candidates[0].content.parts[0].text;
-                    summaryOutput.textContent = summary;
+                    
+                    // Use marked.js to render the Markdown text properly into HTML
+                    summaryOutput.innerHTML = marked.parse(summary);
                 } else {
                     summaryOutput.textContent = 'Could not generate a summary. Please try again.';
                 }
